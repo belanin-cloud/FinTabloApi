@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  fintablo-proxy:
+    build: .
+    container_name: fintablo-proxy
+    env_file:
+      - .env
+    restart: unless-stopped
+    expose:
+      - "8000"
