@@ -3,6 +3,8 @@
 Read-only FastAPI proxy between OpenClaw and Fintablo API.  
 The service exposes only approved GET endpoints and keeps all sensitive tokens on server side.
 
+API contract for OpenClaw is documented in `API_PROXY.md`.
+
 ## 1) Install Docker and Docker Compose on Debian
 
 ```bash

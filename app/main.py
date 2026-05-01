@@ -99,8 +99,7 @@ async def balances(
     date: date | None = Query(default=None),
     account_id: str | None = Query(default=None),
 ) -> Any:
-    _ = date
-    return await client.get_balances(account_id)
+    return await client.get_balances(date, account_id)
 
 
 @app.get("/cashflow", dependencies=ReadOnlyGuard)

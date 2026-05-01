@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -61,32 +62,65 @@ class FintabloClient:
             params["moneybagId"] = account_id
         return await self.get("transactions", params=params)
 
-    async def get_balances(self, account_id: str | None) -> Any:
+    async def get_balances(self, date_filter: date | None, account_id: str | None) -> Any:
         payload = await self.get("balances")
-        if not account_id:
-            return payload
         if not isinstance(payload, dict):
             return payload
+
         items = payload.get("items", [])
-        filtered_items = [item for item in items if str(item.get("id")) == str(account_id)]
+        if not isinstance(items, list):
+            return payload
+
+        filtered_items = items
+        if account_id:
+            filtered_items = [
+                item for item in filtered_items if str(item.get("id")) == str(account_id)
+            ]
+
+        if date_filter:
+            cutoff_ts = int(datetime.combine(date_filter, datetime.max.time()).timestamp())
+            filtered_items = [
+                item
+                for item in filtered_items
+                if int(item.get("surplusTimestamp") or 0) <= cutoff_ts
+            ]
+
         payload["items"] = filtered_items
         return payload
 
     async def get_cashflow(self, date_from: date, date_to: date) -> Any:
-        payload = await self.get(
-            "cashflow",
-            params={
-                "dateFrom": date_from.strftime("%d.%m.%Y"),
-                "dateTo": date_to.strftime("%d.%m.%Y"),
-                "pageSize": 1000,
-                "page": 1,
-            },
-        )
-        items = payload.get("items", []) if isinstance(payload, dict) else []
+        page_size = 1000
+        page = 1
+        items: list[dict[str, Any]] = []
+        while True:
+            payload = await self.get(
+                "cashflow",
+                params={
+                    "dateFrom": date_from.strftime("%d.%m.%Y"),
+                    "dateTo": date_to.strftime("%d.%m.%Y"),
+                    "pageSize": page_size,
+                    "page": page,
+                },
+            )
+            if not isinstance(payload, dict):
+                break
+
+            page_items = payload.get("items", [])
+            if not isinstance(page_items, list):
+                break
+
+            items.extend(page_items)
+            if len(page_items) < page_size:
+                break
+            page += 1
+
         summary = {"income": 0.0, "outcome": 0.0, "transfer": 0.0}
         for item in items:
             group = item.get("group")
-            value = float(item.get("value", 0))
+            try:
+                value = float(item.get("value", 0))
+            except (TypeError, ValueError):
+                value = 0.0
             if group in summary:
                 summary[group] += value
 
