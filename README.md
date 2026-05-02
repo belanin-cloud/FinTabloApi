@@ -5,6 +5,8 @@ The service exposes only approved GET endpoints and keeps all sensitive tokens o
 
 API contract for OpenClaw is documented in `API_PROXY.md`.
 
+Step-by-step deployment (including typical errors) is in `DEPLOYMENT.md`.
+
 ## 1) Install Docker and Docker Compose on Ubuntu
 
 ```bash
